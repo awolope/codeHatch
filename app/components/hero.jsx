@@ -53,7 +53,7 @@ export default function Hero() {
       students: "24.7K",
       icon: <FaRobot />,
       rating: "4.9",
-      category: "Artificial Intelligence",
+      category: "AI Engineering",
       duration: "16 Weeks",
       bgColor: "bg-gradient-to-br from-[#047857] to-[#0D9488]"
     },
@@ -437,9 +437,11 @@ export default function Hero() {
                           <span className="text-xs text-white/90 flex items-center gap-1">
                             <FaStar className="text-yellow-300" /> {program.rating}
                           </span>
-                          <span className="text-xs text-white/90">
-                            {program.students} builders
-                          </span>
+                        <span className="text-xs text-white/90 flex items-center gap-1">
+  {program.students} 
+  <FaUserGraduate className="text-white" />
+</span>
+
                         </div>
                       </div>
                     </div>
