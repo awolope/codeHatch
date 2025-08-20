@@ -37,29 +37,31 @@ export async function POST(request) {
       );
     }
 
+    // Generate JWT
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '12h' }
     );
 
+    // Response
     const response = NextResponse.json({
       message: 'Login successful',
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
       },
       token,
     });
 
-    // Store token in HTTP-only cookie
+    // Store token in HttpOnly cookie
     response.cookies.set('auth_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 60 * 60 * 12,
+      maxAge: 60 * 60 * 12, // 12h
       path: '/',
     });
 

@@ -10,12 +10,18 @@ const publicRoutes = [
   '/reset-password',
   '/FAQ',
   '/guide',
-  'contact',
-  '/'
+  '/contact',
+  '/',
+  '/courses',
 ]
+
+// Routes that require specific roles
+const adminRoutes = ['/Admin'];
+const tutorRoutes = ['/tutor-dashboard'];
 
 export default function ProtectedRoute({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [userRole, setUserRole] = useState(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const pathname = usePathname()
@@ -30,20 +36,10 @@ export default function ProtectedRoute({ children }) {
           return
         }
 
-        // Check if we have a token in storage
-        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
-        
-        if (!token) {
-          router.push('/login')
-          return
-        }
-
         // Verify the token with your backend
         const response = await fetch('/api/auth/verify', {
           method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          credentials: 'include' // Important: sends cookies
         })
 
         if (!response.ok) {
@@ -51,9 +47,24 @@ export default function ProtectedRoute({ children }) {
           return
         }
 
+        const data = await response.json()
         setIsAuthenticated(true)
+        setUserRole(data.user.role)
+        
+        // Check role-based access
+        if (adminRoutes.some(route => pathname.startsWith(route)) && data.user.role !== 'admin') {
+          router.push('/unauthorized')
+          return
+        }
+        
+        if (tutorRoutes.some(route => pathname.startsWith(route)) && 
+            !['tutor', 'admin'].includes(data.user.role)) {
+          router.push('/unauthorized')
+          return
+        }
+        
       } catch (error) {
-    
+        console.error('Auth check error:', error)
         if (!publicRoutes.includes(pathname)) {
           router.push('/login')
         }

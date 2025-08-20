@@ -35,18 +35,16 @@ export default function Login() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ action: 'login', ...normalizedData }),
+        body: JSON.stringify({ ...normalizedData }),
       });
 
       const data = await response.json();
 
-      if (!response.ok) throw new Error(data.message || 'Login failed');
+      if (!response.ok) throw new Error(data.error || 'Login failed');
 
-      if (data.token && typeof window !== 'undefined') {
-        const storage = rememberMe ? localStorage : sessionStorage;
-        storage.setItem('authToken', data.token);
-      }
-
+      // No need to store anything in localStorage/sessionStorage
+      // The token is stored in an HTTP-only cookie
+      
       const role = data.user?.role;
       if (role === 'student') router.push('/courses');
       else if (role === 'tutor' || role === 'admin') router.push('/dashboard');

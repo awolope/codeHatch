@@ -1,9 +1,22 @@
-"use client";
-import { useState, useEffect } from "react";
+"use client"; 
+import { useState, useEffect, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { FiMenu, FiX, FiSearch, FiUser, FiBook, FiHome, FiAward, FiUsers, FiBarChart2 } from "react-icons/fi";
 import { FaGraduationCap } from "react-icons/fa";
+
+// Debounce function to limit API calls
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
 
 export default function Navbar() {
   const router = useRouter();
@@ -11,70 +24,101 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [authCheckAttempts, setAuthCheckAttempts] = useState(0);
 
-  // Updated color variables to emerald and teal
-  const primary = "#047857";   // Emerald-700
-  const secondary = "#0D9488"; // Teal-600
+  const primary = "#047857";
+  const secondary = "#0D9488";
 
   const navItems = [
     { name: "Home", path: "/", icon: <FiHome className="mr-2" /> },
     { name: "Courses", path: "/courses", icon: <FiBook className="mr-2" /> },
     { name: "Instructors", path: "/instructors", icon: <FiUsers className="mr-2" /> },
     { name: "My Learning", path: "/learning", icon: <FiAward className="mr-2" /> },
-    { name: "Dashboard", path: "/dashboard", icon: <FiBarChart2 className="mr-2" /> },
+    { name: "Dashboard", path: "/dashboard", icon: <FiBarChart2 className="mr-2" />, roles: ["admin", "tutor"] },
   ];
 
-  useEffect(() => {
-    const checkAuth = () => {
-      setIsLoading(true);
-      const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-      
-      if (token) {
+  // Memoized auth check function
+  const checkAuthStatus = useCallback(async () => {
+    try {
+      // Don't attempt too many times if failing
+      if (authCheckAttempts > 3) {
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await fetch('/api/auth/verify', {
+        method: 'GET',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
         setIsLoggedIn(true);
-        const userData = localStorage.getItem("userData") || sessionStorage.getItem("userData");
-        if (userData) {
-          const parsedData = JSON.parse(userData);
-          setUserName(parsedData.name || "");
-        }
+        setUserName(data.user.name || "");
+        setUserRole(data.user.role || "");
+        setAuthCheckAttempts(0); // Reset counter on success
       } else {
         setIsLoggedIn(false);
         setUserName("");
+        setUserRole("");
+        setAuthCheckAttempts(prev => prev + 1);
       }
+    } catch (error) {
+      console.error("Auth check error:", error);
+      setIsLoggedIn(false);
+      setUserName("");
+      setUserRole("");
+      setAuthCheckAttempts(prev => prev + 1);
+    } finally {
       setIsLoading(false);
-    };
+    }
+  }, [authCheckAttempts]);
 
-    checkAuth();
+  // Debounced version of auth check
+  const debouncedAuthCheck = useCallback(debounce(checkAuthStatus, 300), [checkAuthStatus]);
 
-    const handleStorageChange = (e) => {
-      if (e.key === "authToken" || e.key === "userData") {
-        checkAuth();
-      }
-    };
+  useEffect(() => {
+    debouncedAuthCheck();
+  }, [debouncedAuthCheck]);
 
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+  useEffect(() => {
+    // Set up interval to check auth status periodically
+    const intervalId = setInterval(debouncedAuthCheck, 300000); // Check every 5 minutes
+
+    return () => clearInterval(intervalId);
+  }, [debouncedAuthCheck]);
+
+  // Filter nav items based on user role
+  const filteredNavItems = navItems.filter(item => {
+    if (item.roles && !item.roles.includes(userRole)) {
+      return false;
+    }
+    return true;
+  });
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
+      setIsLoading(true);
+      const response = await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
       });
+      
+      if (response.ok) {
+        setIsLoggedIn(false);
+        setUserName("");
+        setUserRole("");
+        router.push("/login");
+      }
     } catch (error) {
       console.error("Logout error:", error);
+    } finally {
+      setIsLoading(false);
+      setMobileMenuOpen(false);
     }
-    
-    localStorage.removeItem("authToken");
-    sessionStorage.removeItem("authToken");
-    localStorage.removeItem("userData");
-    sessionStorage.removeItem("userData");
-    
-    setIsLoggedIn(false);
-    setUserName("");
-    router.push("/login");
   };
 
   const handleSearch = (e) => {
@@ -85,12 +129,22 @@ export default function Navbar() {
     }
   };
 
+  // Loading state
   if (isLoading) {
     return (
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
-            <div className="animate-pulse w-full h-8 bg-gray-200 rounded"></div>
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-gray-200 animate-pulse rounded-full mr-2"></div>
+              <div className="h-6 w-32 bg-gray-200 animate-pulse rounded"></div>
+            </div>
+            <div className="hidden md:flex space-x-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-6 w-16 bg-gray-200 animate-pulse rounded"></div>
+              ))}
+            </div>
+            <div className="h-8 w-24 bg-gray-200 animate-pulse rounded"></div>
           </div>
         </div>
       </nav>
@@ -106,6 +160,7 @@ export default function Navbar() {
             <button
               className="md:hidden mr-2 p-2 text-gray-800 hover:text-[#047857]"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <FiX size={20} /> : <FiMenu size={20} />}
             </button>
@@ -137,7 +192,7 @@ export default function Navbar() {
           {/* Desktop navigation and auth */}
           <div className="hidden md:flex items-center space-x-2">
             <div className="flex items-center space-x-1 lg:space-x-2">
-              {navItems.map((item) => (
+              {filteredNavItems.map((item) => (
                 <Link
                   key={item.name}
                   href={item.path}
@@ -168,8 +223,9 @@ export default function Navbar() {
                 <button
                   onClick={handleLogout}
                   className="px-3 py-1.5 text-sm text-white bg-gradient-to-r from-[#047857] to-[#0D9488] rounded-md hover:from-[#065F46] hover:to-[#0E766E] transition-colors"
+                  disabled={isLoading}
                 >
-                  Logout
+                  {isLoading ? '...' : 'Logout'}
                 </button>
               </div>
             ) : (
@@ -194,6 +250,7 @@ export default function Navbar() {
           <button
             className="md:hidden ml-2 p-2 text-gray-800 hover:text-[#047857]"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Search"
           >
             <FiSearch size={20} />
           </button>
@@ -219,7 +276,7 @@ export default function Navbar() {
             </div>
 
             {/* Mobile nav items */}
-            {navItems.map((item) => (
+            {filteredNavItems.map((item) => (
               <Link
                 key={item.name}
                 href={item.path}
@@ -243,13 +300,11 @@ export default function Navbar() {
                     {userName || "My Account"}
                   </div>
                   <button
-                    onClick={() => {
-                      handleLogout();
-                      setMobileMenuOpen(false);
-                    }}
+                    onClick={handleLogout}
                     className="block w-full text-center py-2 px-4 my-1 text-white bg-gradient-to-r from-[#047857] to-[#0D9488] rounded-md hover:from-[#065F46] hover:to-[#0E766E]"
+                    disabled={isLoading}
                   >
-                    Logout
+                    {isLoading ? 'Logging out...' : 'Logout'}
                   </button>
                 </>
               ) : (
