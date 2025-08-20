@@ -1,44 +1,59 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 
-export async function middleware(request) {
-  const path = request.nextUrl.pathname;
-  const isPublicPath = ['/login', '/signup', '/forgot-password'].includes(path);
-  const token = request.cookies.get('auth_token')?.value || '';
+export function middleware(request) {
+  const token = request.cookies.get('auth_token')?.value;
+  const { pathname } = request.nextUrl;
 
-  try {
-    // Verify token for protected routes
-    if (!isPublicPath && !token) {
-      return NextResponse.redirect(new URL('/login', request.nextUrl));
-    }
-
-    if (token) {
-      jwt.verify(token, process.env.JWT_SECRET);
-      
-      // Redirect authenticated users away from auth pages
-      if (isPublicPath) {
-        return NextResponse.redirect(new URL('/', request.nextUrl));
-      }
-    }
-  } catch (error) {
+  // Public routes that don't require authentication
+  const publicRoutes = ['/login', '/signup', '/request-reset-password', '/reset-password', '/', '/FAQ', '/guide', '/contact'];
+  const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/'));
   
-    if (!isPublicPath) {
-      const response = NextResponse.redirect(new URL('/login', request.nextUrl));
-      response.cookies.delete('auth_token');
-      return response;
-    }
+  if (isPublicRoute) {
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  // Protected routes
+  if (!token) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Admin routes
+    const adminRoutes = ['/Admin'];
+    const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
+    
+    if (isAdminRoute && decoded.role !== 'admin') {
+      return NextResponse.redirect(new URL('/unauthorized', request.url));
+    }
+
+    // Tutor routes
+    const tutorRoutes = ['/tutor-dashboard'];
+    const isTutorRoute = tutorRoutes.some(route => pathname.startsWith(route));
+    
+    if (isTutorRoute && !['tutor', 'admin'].includes(decoded.role)) {
+      return NextResponse.redirect(new URL('/unauthorized', request.url));
+    }
+
+    return NextResponse.next();
+  } catch (error) {
+    // Invalid token
+    const response = NextResponse.redirect(new URL('/login', request.url));
+    response.cookies.set('auth_token', '', { maxAge: 0 }); // Clear invalid token
+    return response;
+  }
 }
 
 export const config = {
   matcher: [
-    '/',
-    '/profile',
-    '/login',
-    '/signup',
-    '/forgot-password',
-    '/reset-password',
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
