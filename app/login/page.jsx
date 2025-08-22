@@ -45,10 +45,11 @@ export default function Login() {
       // No need to store anything in localStorage/sessionStorage
       // The token is stored in an HTTP-only cookie
       
-      const role = data.user?.role;
-      if (role === 'student') router.push('/courses');
-      else if (role === 'tutor' || role === 'admin') router.push('/dashboard');
-      else router.push('/');
+  const role = data.user?.role;
+if (role === 'student') router.push('/courses');
+else if (role === 'tutor') router.push('/dashboard');
+else if (role === 'admin') router.push('/Admin/dashboard'); // Admin goes to admin dashboard
+else router.push('/');
 
     } catch (err) {
       setError(err.message);

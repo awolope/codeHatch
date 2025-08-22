@@ -87,7 +87,7 @@ const CourseCard = ({ enrollment, onStartCourse }) => {
       <div className="flex flex-col md:flex-row md:items-start gap-6">
         {/* Course Image/Icon */}
         <div className="flex-shrink-0">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white">
+          <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center text-white">
             {getCategoryIcon(course.category)}
           </div>
         </div>

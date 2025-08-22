@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { FiCheck, FiX, FiRefreshCw, FiDollarSign, FiUser, FiBook, FiInfo } from 'react-icons/fi';
 
-// Notification Modal Component
+// ✅ Notification Modal Component (unchanged)
 const NotificationModal = ({ isOpen, onClose, type, title, message }) => {
   if (!isOpen) return null;
 
@@ -61,6 +61,12 @@ export default function Confirm() {
     message: ''
   });
 
+  // ✅ Pagination State
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0); // Add total items state
+  const limit = 10;
+
   useEffect(() => {
     checkAuth();
   }, []);
@@ -69,7 +75,12 @@ export default function Confirm() {
     if (isAdmin) {
       fetchEnrollments();
     }
-  }, [isAdmin, filter]);
+  }, [isAdmin, filter, page]);
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [filter]);
 
   const showNotification = (type, title, message) => {
     setNotification({
@@ -113,21 +124,37 @@ export default function Confirm() {
     try {
       setLoading(true);
       const url = filter === 'all' 
-        ? '/api/admin/enrollments' 
-        : `/api/admin/enrollments?status=${filter}`;
+        ? `/api/admin/enrollments?page=${page}&limit=${limit}`
+        : `/api/admin/enrollments?status=${filter}&page=${page}&limit=${limit}`;
       
       const res = await fetch(url);
       const data = await res.json();
       
       if (data.success) {
-        setEnrollments(data.data);
+        setEnrollments(data.data || []);
+        
+        // Handle different API response formats
+        const totalCount = data.total || data.data?.length || 0;
+        setTotalItems(totalCount);
+        
+        // Calculate total pages safely
+        const calculatedTotalPages = Math.ceil(totalCount / limit);
+        setTotalPages(calculatedTotalPages > 0 ? calculatedTotalPages : 1);
       } else {
         setError(data.error || 'Failed to fetch enrollments');
         showNotification('error', 'Error', data.error || 'Failed to fetch enrollments');
+        
+        // Set safe defaults on error
+        setTotalPages(1);
+        setTotalItems(0);
       }
     } catch (err) {
       setError('Failed to fetch enrollments');
       showNotification('error', 'Error', 'Failed to fetch enrollments');
+      
+      // Set safe defaults on error
+      setTotalPages(1);
+      setTotalItems(0);
     } finally {
       setLoading(false);
     }
@@ -232,7 +259,10 @@ export default function Confirm() {
               </button>
             ))}
             <button
-              onClick={fetchEnrollments}
+              onClick={() => {
+                fetchEnrollments();
+                setPage(1);
+              }}
               className="ml-auto flex items-center gap-2 px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
             >
               <FiRefreshCw size={14} />
@@ -260,90 +290,116 @@ export default function Confirm() {
               <p className="text-gray-600">No enrollments found</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-200">
-              {enrollments.map((enrollment) => (
-                <div key={enrollment._id} className="p-6">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    {/* Enrollment Info */}
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 mb-2">
-                        {enrollment.course?.title}
-                      </h3>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
-                        <div className="flex items-center">
-                          <FiUser className="mr-2 text-gray-400" />
-                          <span>{enrollment.user?.name} ({enrollment.user?.email})</span>
-                        </div>
+            <>
+              <div className="divide-y divide-gray-200">
+                {enrollments.map((enrollment) => (
+                  <div key={enrollment._id} className="p-6">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                      {/* Enrollment Info */}
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 mb-2">
+                          {enrollment.course?.title}
+                        </h3>
                         
-                        <div className="flex items-center">
-                          <FiDollarSign className="mr-2 text-gray-400" />
-                          <span>${enrollment.amountPaid}</span>
-                        </div>
-                        
-                        <div>
-                          <span className={getStatusBadge(enrollment.paymentStatus)}>
-                            {enrollment.paymentStatus}
-                          </span>
-                        </div>
-                        
-                        <div>
-                          {enrollment.paymentMethod && (
-                            <span className="text-sm text-gray-500">
-                              {getPaymentMethodIcon(enrollment.paymentMethod)}
-                              {enrollment.paymentMethod.replace('_', ' ')}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
+                          <div className="flex items-center">
+                            <FiUser className="mr-2 text-gray-400" />
+                            <span>{enrollment.user?.name} ({enrollment.user?.email})</span>
+                          </div>
+                          
+                          <div className="flex items-center">
+                            <FiDollarSign className="mr-2 text-gray-400" />
+                            <span>${enrollment.amountPaid}</span>
+                          </div>
+                          
+                          <div>
+                            <span className={getStatusBadge(enrollment.paymentStatus)}>
+                              {enrollment.paymentStatus}
                             </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Payment Details */}
-                      {(enrollment.bankName || enrollment.paymentReference) && (
-                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                          <h4 className="font-medium text-sm text-gray-700 mb-1">Payment Details:</h4>
-                          <div className="text-sm text-gray-600 space-y-1">
-                            {enrollment.bankName && <p>Bank: {enrollment.bankName}</p>}
-                            {enrollment.paymentReference && <p>Reference: {enrollment.paymentReference}</p>}
-                            {enrollment.transferDate && (
-                              <p>Date: {new Date(enrollment.transferDate).toLocaleDateString()}</p>
+                          </div>
+                          
+                          <div>
+                            {enrollment.paymentMethod && (
+                              <span className="text-sm text-gray-500">
+                                {getPaymentMethodIcon(enrollment.paymentMethod)}
+                                {enrollment.paymentMethod.replace('_', ' ')}
+                              </span>
                             )}
                           </div>
                         </div>
+
+                        {/* Payment Details */}
+                        {(enrollment.bankName || enrollment.paymentReference) && (
+                          <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                            <h4 className="font-medium text-sm text-gray-700 mb-1">Payment Details:</h4>
+                            <div className="text-sm text-gray-600 space-y-1">
+                              {enrollment.bankName && <p>Bank: {enrollment.bankName}</p>}
+                              {enrollment.paymentReference && <p>Reference: {enrollment.paymentReference}</p>}
+                              {enrollment.transferDate && (
+                                <p>Date: {new Date(enrollment.transferDate).toLocaleDateString()}</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      {enrollment.paymentStatus === 'pending' && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handlePaymentAction(enrollment._id, 'approve')}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                          >
+                            <FiCheck size={16} />
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handlePaymentAction(enrollment._id, 'reject')}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                          >
+                            <FiX size={16} />
+                            Reject
+                          </button>
+                        </div>
                       )}
                     </div>
-
-                    {/* Action Buttons */}
-                    {enrollment.paymentStatus === 'pending' && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handlePaymentAction(enrollment._id, 'approve')}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-                        >
-                          <FiCheck size={16} />
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handlePaymentAction(enrollment._id, 'reject')}
-                          className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                        >
-                          <FiX size={16} />
-                          Reject
-                        </button>
-                      </div>
-                    )}
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+
+              {/* ✅ Pagination Controls */}
+              <div className="flex justify-center items-center gap-4 p-4 border-t">
+                <button
+                  onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={page === 1}
+                  className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+
+                <span className="text-sm text-gray-600">
+                  Page {page} of {totalPages} ({totalItems} total items)
+                </span>
+
+                <button
+                  onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={page === totalPages}
+                  className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </>
           )}
         </div>
 
-        {/* Stats */}
+        {/* Stats - Fixed to show current page stats, not total database stats */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Enrollments</h3>
-            <p className="text-3xl font-bold text-emerald-600">{enrollments.length}</p>
-          </div>
+         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+  <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Enrollments</h3>
+  <p className="text-3xl font-bold text-emerald-600">{totalItems}</p>
+</div>
+
           
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Pending Payments</h3>
