@@ -4,6 +4,35 @@ import Enrollment from "@/lib/models/enrollment";
 import Course from "@/lib/models/course";
 import User from "@/lib/models/user"; // Import the User model
 
+// ✅ Get only enrolled courses for a user (for My Courses page)
+export async function GET_ENROLLED(req) {
+  await dbConnect();
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: "userId query parameter is required" },
+        { status: 400 }
+      );
+    }
+
+    // Get only enrolled courses (status: enrolled, in-progress, completed)
+    const enrollments = await Enrollment.find({ 
+      user: userId,
+      status: { $in: ["enrolled", "in-progress", "completed"] }
+    })
+      .populate("course", "title description category level duration price image") // course details
+      .sort({ updatedAt: -1 }); // newest first
+
+    return NextResponse.json({ success: true, data: enrollments }, { status: 200 });
+  } catch (err) {
+    console.error("GET enrolled courses error:", err);
+    return NextResponse.json({ success: false, error: err.message }, { status: 400 });
+  }
+}
 // ✅ Get all enrollments for a user
 export async function GET(req) {
   await dbConnect();

@@ -36,7 +36,7 @@ export default function Navbar() {
     { name: "Home", path: "/", icon: <FiHome className="mr-2" /> },
     { name: "Courses", path: "/courses", icon: <FiBook className="mr-2" /> },
     { name: "Instructors", path: "/instructors", icon: <FiUsers className="mr-2" /> },
-    { name: "My Learning", path: "/learning", icon: <FiAward className="mr-2" /> },
+    { name: "My Learning", path: "/my-courses", icon: <FiAward className="mr-2" /> },
     { name: "Dashboard", path: "/dashboard", icon: <FiBarChart2 className="mr-2" />, roles: ["admin", "tutor"] },
   ];
 
