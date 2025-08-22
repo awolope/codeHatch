@@ -44,7 +44,7 @@ export default function Navbar() {
   const checkAuthStatus = useCallback(async () => {
     try {
       // Don't attempt too many times if failing
-      if (authCheckAttempts > 3) {
+      if (authCheckAttempts > 2) {
         setIsLoading(false);
         return;
       }
