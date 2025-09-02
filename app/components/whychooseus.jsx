@@ -84,17 +84,17 @@ export function UpcomingEvents() {
   const events = [
     {
       title: "Free React Workshop",
-      date: "2025-09-01T18:00:00",
+      date: "2025-12-01T18:00:00",
       desc: "Learn the basics of React in a live coding session with Q&A.",
     },
     {
       title: "Career in Data Science",
-      date: "2025-08-20T16:00:00",
+      date: "2025-12-20T16:00:00",
       desc: "Discover how to start and grow your career in data science.",
     },
     {
       title: "UI/UX Design Bootcamp",
-      date: "2025-08-25T14:00:00",
+      date: "2025-12-25T14:00:00",
       desc: "Master design fundamentals and build a strong portfolio.",
     },
   ];

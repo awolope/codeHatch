@@ -40,7 +40,7 @@ export default function Hero() {
     { name: "AI Engineering", icon: <FaRobot className="text-[#047857]" />, hot: true },
     { name: "Quantum Computing", icon: <FaAtom className="text-[#0D9488]" />, hot: true },
     { name: "Blockchain Dev", icon: <FaShieldAlt className="text-[#065F46]" /> },
-    { name: "Neural Networks", icon: <FaBrain className="text-[#047857]" /> },
+    { name: "App Development", icon: <FaBrain className="text-[#047857]" /> },
     { name: "Cloud Architect", icon: <FaCloud className="text-[#0D9488]" /> },
     { name: "AR/VR Systems", icon: <FaUserAstronaut className="text-[#065F46]" />, hot: true },
     { name: "Data Science", icon: <FaChartLine className="text-[#047857]" />, hot: true },
@@ -49,25 +49,25 @@ export default function Hero() {
 
   const featuredPrograms = [
     {
-      title: "AI Mastery Program",
+      title: "Java Programming",
       students: "24.7K",
       icon: <FaRobot />,
       rating: "4.9",
-      category: "AI Engineering",
+      category: "App Development",
       duration: "16 Weeks",
       bgColor: "bg-gradient-to-br from-[#047857] to-[#0D9488]"
     },
     {
-      title: "Quantum Fundamentals",
+      title: "Mobile App with React Native",
       students: "8.3K",
       icon: <FaAtom />,
       rating: "4.8",
-      category: "Quantum Tech",
+      category: "App Development",
       duration: "12 Weeks",
       bgColor: "bg-gradient-to-br from-[#065F46] to-[#047857]"
     },
     {
-      title: "Data Science Pro",
+      title: "Data Analytics",
       students: "18.5K",
       icon: <FaChartLine />,
       rating: "4.9",
@@ -366,7 +366,7 @@ export default function Hero() {
                   transition={{ duration: 0.8, delay: 0.6 }}
                 >
                   <Link
-                    href="/programs"
+                    href="/courses"
                     className="px-6 py-3.5 bg-gradient-to-r from-[#047857] to-[#0D9488] hover:from-[#065F46] hover:to-[#0F766E] text-white font-medium rounded-lg shadow-lg hover:shadow-[#047857]/40 transition-all flex items-center justify-center gap-2 text-base"
                   >
                     Start Building <FaArrowRight className="text-sm" />
@@ -378,7 +378,7 @@ export default function Hero() {
                   transition={{ duration: 0.8, delay: 0.7 }}
                 >
                   <Link
-                    href="/paths"
+                    href="/courses"
                     className="px-6 py-3.5 bg-white text-gray-800 font-medium rounded-lg border border-gray-200 hover:border-[#047857] shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 text-base"
                   >
                     <FaUserGraduate className="text-base" /> Explore Career Paths
@@ -452,7 +452,7 @@ export default function Hero() {
                 ))}
               </div>
 
-              <Link href="/programs" className="mt-5 text-sm font-medium text-[#047857] hover:text-[#065F46] flex items-center gap-2 justify-end group">
+              <Link href="/courses" className="mt-5 text-sm font-medium text-[#047857] hover:text-[#065F46] flex items-center gap-2 justify-end group">
                 View all future-tech programs 
                 <motion.div
                   animate={{ x: [0, 5, 0] }}
