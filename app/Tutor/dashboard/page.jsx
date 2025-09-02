@@ -122,7 +122,7 @@ export default function TutorDashboardPage() {
         setCourses(data.data.map(enrollment => enrollment.course));
       }
     } catch (err) {
-      console.error('Failed to fetch tutor courses:', err);
+      
     }
   };
 
