@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import Module from '@/models/module';
-import Content from '@/models/content';
+import Module from '@/lib/models/module';
+import Content from '@/lib/models/content';
 import Course from "@/lib/models/course";
 import dbConnect from '@/lib/dbConnect';
 
