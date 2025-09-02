@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import Module from '@/models/module';
 import Content from '@/models/content';
-import Course from '@/models/course';
+import Course from "@/lib/models/course";
 import dbConnect from '@/lib/dbConnect';
 
 // GET all modules for a course
