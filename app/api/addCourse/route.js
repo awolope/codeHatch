@@ -39,7 +39,7 @@ export async function POST(req) {
       req
     );
   } catch (err) {
-    console.error("Course creation error:", err);
+    
     return withCORS(
       NextResponse.json(
         {
@@ -99,7 +99,7 @@ export async function PUT(req) {
       req
     );
   } catch (err) {
-    console.error("Course update error:", err);
+  
     return withCORS(
       NextResponse.json(
         {
@@ -152,7 +152,7 @@ export async function DELETE(req) {
       req
     );
   } catch (err) {
-    console.error("Course delete error:", err);
+
     return withCORS(
       NextResponse.json(
         {

@@ -35,7 +35,7 @@ const LoginPromptModal = ({ isOpen, onClose, onLogin }) => {
                   Login Required
                 </h3>
                 <p className="text-gray-600 text-sm mb-6">
-                  Please log in to enroll in this course and access all features.
+                  Please log in to add this course to your teaching list and access all features.
                 </p>
                 <div className="flex gap-3 justify-center">
                   <button
@@ -61,7 +61,7 @@ const LoginPromptModal = ({ isOpen, onClose, onLogin }) => {
 };
 
 // Enrollment Success Modal Component
-const EnrollmentSuccessModal = ({ isOpen, onClose, courseTitle }) => {
+const EnrollmentSuccessModal = ({ isOpen, onClose, courseTitle, isTutor = false }) => {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -87,13 +87,19 @@ const EnrollmentSuccessModal = ({ isOpen, onClose, courseTitle }) => {
                   <FiCheck className="text-emerald-600 text-2xl" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Successfully Enrolled!
+                  {isTutor ? 'Course Added Successfully!' : 'Successfully Enrolled!'}
                 </h3>
                 <p className="text-gray-600 text-sm mb-4">
-                  You are now enrolled in <span className="font-medium">{courseTitle}</span>
+                  {isTutor 
+                    ? `You've added "${courseTitle}" to your teaching list.`
+                    : `You are now enrolled in "${courseTitle}"`
+                  }
                 </p>
                 <p className="text-gray-500 text-xs mb-6">
-                  You can access the course materials from your dashboard.
+                  {isTutor
+                    ? 'The course is now pending approval.'
+                    : 'You can access the course materials from your dashboard.'
+                  }
                 </p>
                 <button
                   onClick={onClose}
@@ -111,7 +117,7 @@ const EnrollmentSuccessModal = ({ isOpen, onClose, courseTitle }) => {
 };
 
 // CourseCard Component
-const CourseCard = ({ course, userEnrollments, user, onLoginPrompt }) => {
+const CourseCard = ({ course, userEnrollments, user, onLoginPrompt, onTutorEnroll }) => {
   // Check for any enrollment (regardless of status)
   const enrollment = userEnrollments.find(enrollment => 
     enrollment.course && enrollment.course._id === course._id
@@ -120,6 +126,9 @@ const CourseCard = ({ course, userEnrollments, user, onLoginPrompt }) => {
   const isEnrolled = enrollment && enrollment.status === 'enrolled';
   const isPending = enrollment && enrollment.status === 'pending';
   const isFeatured = course.isFeatured;
+
+  // Check if user is a tutor
+  const isTutor = user && user.role === 'tutor';
 
   const getCategoryIcon = (category) => {
     const icons = {
@@ -201,11 +210,40 @@ const CourseCard = ({ course, userEnrollments, user, onLoginPrompt }) => {
   const categoryColor = getCategoryColor(course.category);
   const levelColor = getLevelColor(course.level);
 
-  const handleEnrollClick = () => {
+  const handleEnrollClick = async () => {
     if (!user) {
       onLoginPrompt();
+    } else if (isTutor) {
+      // For tutors, skip payment and enroll directly with pending status
+      try {
+        const response = await fetch('/api/enrollments', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            courseId: course._id,
+            userId: user.id,
+            status: 'pending', // Set status to pending for tutors
+            // No payment information needed
+          }),
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+          // Call the onTutorEnroll callback to update UI
+          onTutorEnroll(course._id);
+        } else {
+          
+          alert('Failed to add course. Please try again.');
+        }
+      } catch (error) {
+      
+        alert('An error occurred. Please try again.');
+      }
     } else {
-      // Redirect to payment page
+      // For regular users, redirect to payment page
       window.location.href = `/payment/${course._id}`;
     }
   };
@@ -283,7 +321,7 @@ const CourseCard = ({ course, userEnrollments, user, onLoginPrompt }) => {
       >
         {isEnrolled ? (
           <span className="flex items-center justify-center gap-1">
-            <FiCheck size={14} /> Enrolled
+            <FiCheck size={14} /> {isTutor ? 'Teaching' : 'Enrolled'}
           </span>
         ) : isPending ? (
           <span className="flex items-center justify-center gap-1">
@@ -291,103 +329,15 @@ const CourseCard = ({ course, userEnrollments, user, onLoginPrompt }) => {
           </span>
         ) : !user ? (
           <span className="flex items-center justify-center gap-1">
-            <FiLogIn size={14} /> Login to Enroll
+            <FiLogIn size={14} /> Login to {isTutor ? 'Teach' : 'Enroll'}
           </span>
+        ) : isTutor ? (
+          'Add to My Courses'
         ) : (
           'Enroll Now'
         )}
       </button>
     </motion.div>
-  );
-};
-
-// Mobile Filter Sheet Component
-const MobileFilterSheet = ({
-  isOpen,
-  onClose,
-  categories,
-  levels,
-  currentFilter,
-  currentLevel,
-  setFilter,
-  setLevel,
-}) => {
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/20 z-50 md:hidden"
-            onClick={onClose}
-          />
-
-          {/* Filter Sheet */}
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-xl p-4 z-50 shadow-lg md:hidden max-h-[60vh] overflow-y-auto"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-gray-900">
-                Filter Courses
-              </h3>
-              <button
-                onClick={onClose}
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
-              >
-                <FiX size={18} />
-              </button>
-            </div>
-
-            {/* Category Filters */}
-            <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Category</h4>
-              <div className="grid grid-cols-2 gap-2">
-                {categories.map((category) => (
-                  <button
-                    key={category}
-                    onClick={() => setFilter(category)}
-                    className={`p-2 rounded text-xs font-medium transition-colors ${
-                      currentFilter === category
-                        ? "bg-emerald-500 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Level Filters */}
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Level</h4>
-              <div className="grid grid-cols-3 gap-2">
-                {levels.map((level) => (
-                  <button
-                    key={level}
-                    onClick={() => setLevel(level)}
-                    className={`p-2 rounded text-xs font-medium transition-colors ${
-                      currentLevel === level
-                        ? "bg-emerald-500 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    {level}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
   );
 };
 
@@ -397,18 +347,11 @@ export default function CoursesPage() {
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
   const [error, setError] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('All');
-  const [levelFilter, setLevelFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successCourseTitle, setSuccessCourseTitle] = useState('');
-
-  // Define categories and levels with default values
-  const categories = ['All', ...new Set(courses.map(course => course.category).filter(Boolean))];
-  const levels = ['All', 'Beginner', 'Intermediate', 'Advanced'];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -446,7 +389,6 @@ export default function CoursesPage() {
           }
         }
       } catch (err) {
-        console.error('Error fetching data:', err);
         setError(err.message || 'Failed to load data');
       } finally {
         setLoading(false);
@@ -468,15 +410,13 @@ export default function CoursesPage() {
     }
   }, []);
 
-  // Filter courses based on selected filters and search term
+  // Filter courses based on search term only
   const filteredCourses = courses.filter(course => {
-    const matchesCategory = categoryFilter === 'All' || course.category === categoryFilter;
-    const matchesLevel = levelFilter === 'All' || course.level === levelFilter;
     const matchesSearch = searchTerm === '' || 
                          course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          course.description.toLowerCase().includes(searchTerm.toLowerCase());
     
-    return matchesCategory && matchesLevel && matchesSearch;
+    return matchesSearch;
   });
 
   const handleLoginPrompt = () => {
@@ -485,6 +425,26 @@ export default function CoursesPage() {
 
   const handleLogin = () => {
     window.location.href = '/login';
+  };
+
+  // Function to handle tutor enrollment
+  const handleTutorEnroll = (courseId) => {
+    // Update the userEnrollments state to reflect the new pending enrollment
+    setUserEnrollments(prev => [
+      ...prev,
+      {
+        course: { _id: courseId },
+        status: 'pending',
+        // Add other necessary fields based on your API response
+      }
+    ]);
+    
+    // Show success message
+    const enrolledCourse = courses.find(course => course._id === courseId);
+    if (enrolledCourse) {
+      setSuccessCourseTitle(enrolledCourse.title);
+      setShowSuccessModal(true);
+    }
   };
 
   // Add user greeting to the header
@@ -497,7 +457,7 @@ export default function CoursesPage() {
       return (
         <p className="text-gray-600 text-sm flex items-center gap-1">
           <FiUser size={12} />
-          Welcome back, {user.name}
+          Welcome back, {user.name} {user.role === 'tutor' && '(Tutor)'}
         </p>
       );
     }
@@ -505,7 +465,7 @@ export default function CoursesPage() {
     return (
       <p className="text-gray-600 text-sm flex items-center gap-1">
         <FiLogIn size={12} />
-        Log in to enroll in courses
+        Log in to {user?.role === 'tutor' ? 'teach' : 'enroll in'} courses
       </p>
     );
   };
@@ -550,16 +510,19 @@ export default function CoursesPage() {
           </h1>
           <UserGreeting />
           <p className="text-gray-500 text-xs mt-1">
-            Browse our collection of learning resources
+            {user?.role === 'tutor' 
+              ? 'Browse and add courses to your teaching list' 
+              : 'Browse our collection of learning resources'
+            }
           </p>
         </div>
 
-        {/* Search and Filter */}
+        {/* Search */}
         <div className="mb-6">
-          <div className="bg-white rounded-lg p-3 ">
-            <div className="flex flex-col md:flex-row gap-8 items-center">
-              {/* Search Input */}
-              <div className="w-1/2">
+          <div className="bg-white rounded-lg p-3">
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              {/* Search Input - Always visible */}
+              <div className="w-full">
                 <div className="relative">
                   <input
                     type="text"
@@ -571,60 +534,9 @@ export default function CoursesPage() {
                   <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
                 </div>
               </div>
-
-              {/* Filter Button for Mobile */}
-              <button
-                onClick={() => setIsFilterOpen(true)}
-                className="w-full md:w-auto flex items-center justify-center gap-2 px-3 py-2 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors md:hidden text-sm"
-              >
-                <FiFilter size={14} />
-                Filter
-              </button>
-              
-              {/* Desktop Filters */}
-              <div className="hidden md:flex gap-6 items-end">
-                <div className="flex flex-col">
-                  <label className="text-xs text-gray-500 font-medium mb-4">Category</label>
-                  <select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="px-3 mb-8 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    {categories.map(category => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex flex-col">
-                  <label className="text-xs text-gray-500 font-medium mb-1">Level</label>
-                  <select
-                    value={levelFilter}
-                    onChange={(e) => setLevelFilter(e.target.value)}
-                    className="px-3 py-2 rounded-lg border mb-8  border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    {levels.map(level => (
-                      <option key={level} value={level}>{level}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            
             </div>
           </div>
         </div>
-
-        {/* Mobile Filter Sheet */}
-        <MobileFilterSheet
-          isOpen={isFilterOpen}
-          onClose={() => setIsFilterOpen(false)}
-          categories={categories}
-          levels={levels}
-          currentFilter={categoryFilter}
-          currentLevel={levelFilter}
-          setFilter={setCategoryFilter}
-          setLevel={setLevelFilter}
-        />
 
         {/* Courses Grid */}
         <div>
@@ -632,7 +544,7 @@ export default function CoursesPage() {
             <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
               <FiBook className="mx-auto text-2xl text-gray-400 mb-2" />
               <h3 className="text-base font-semibold text-gray-900 mb-1">No courses found</h3>
-              <p className="text-gray-600 text-xs">Try different search or filter terms</p>
+              <p className="text-gray-600 text-xs">Try different search terms</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -643,6 +555,7 @@ export default function CoursesPage() {
                   userEnrollments={userEnrollments}
                   user={user}
                   onLoginPrompt={handleLoginPrompt}
+                  onTutorEnroll={handleTutorEnroll}
                 />
               ))}
             </div>
@@ -667,6 +580,7 @@ export default function CoursesPage() {
           isOpen={showSuccessModal}
           onClose={() => setShowSuccessModal(false)}
           courseTitle={successCourseTitle}
+          isTutor={user?.role === 'tutor'}
         />
       </div>
     </div>

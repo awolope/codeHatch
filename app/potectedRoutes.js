@@ -17,7 +17,7 @@ const publicRoutes = [
 
 // Routes that require specific roles
 const adminRoutes = ['/Admin'];
-const tutorRoutes = ['/tutor-dashboard'];
+const tutorRoutes = ['/Tutor'];
 
 export default function ProtectedRoute({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -64,7 +64,7 @@ export default function ProtectedRoute({ children }) {
         }
         
       } catch (error) {
-        console.error('Auth check error:', error)
+       
         if (!publicRoutes.includes(pathname)) {
           router.push('/login')
         }

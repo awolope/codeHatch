@@ -9,7 +9,7 @@ export async function GET() {
     const courses = await Course.find({});
     return NextResponse.json({ success: true, data: courses }, { status: 200 });
   } catch (err) {
-    console.error('GET /api/courses error:', err);
+ 
     return NextResponse.json(
       { success: false, error: err.message || 'Internal Server Error' },
       { status: 500 }
@@ -40,7 +40,7 @@ export async function GET_COURSE_BY_ID(request, { params }) {
     }, { status: 200 });
     
   } catch (err) {
-    console.error('GET /api/courses/[courseId] error:', err);
+    
     
     if (err.name === 'CastError') {
       return NextResponse.json(

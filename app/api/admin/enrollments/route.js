@@ -23,7 +23,7 @@ export async function GET(req) {
 
     return NextResponse.json({ success: true, data: enrollments }, { status: 200 });
   } catch (err) {
-    console.error("Admin GET enrollments error:", err);
+
     return NextResponse.json({ success: false, error: err.message }, { status: 400 });
   }
 }

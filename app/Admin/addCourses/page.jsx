@@ -80,7 +80,6 @@ export default function AddCoursePage() {
       const data = await res.json();
       setCourses(data.success && Array.isArray(data.data) ? data.data : []);
     } catch (err) {
-      console.error('Fetch courses error:', err);
       setError('Failed to load courses');
       setCourses([]);
     } finally {
@@ -128,7 +127,6 @@ export default function AddCoursePage() {
       resetForm();
       fetchCourses();
     } catch (err) {
-      console.error('Submission error:', err);
       setError(err.message || 'Something went wrong');
     } finally {
       setIsSubmitting(false);
@@ -146,7 +144,7 @@ export default function AddCoursePage() {
 
       fetchCourses();
     } catch (err) {
-      console.error('Delete error:', err);
+    
       setError(err.message);
     }
   };

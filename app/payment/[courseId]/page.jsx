@@ -84,7 +84,7 @@ export default function PaymentPage() {
           setError('Authentication failed');
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        
         setError('An error occurred while loading the page');
       } finally {
         setLoading(false);
@@ -154,7 +154,7 @@ export default function PaymentPage() {
       throw new Error(data.message || 'Payment failed');
     }
   } catch (error) {
-    console.error('Error processing payment:', error);
+   
     
     // Show more specific error messages
     if (error.message.includes('Failed to fetch')) {

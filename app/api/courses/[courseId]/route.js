@@ -25,7 +25,7 @@ export async function GET(request, { params }) {
     }, { status: 200 });
     
   } catch (err) {
-    console.error('GET /api/courses/[courseId] error:', err);
+   
     
     if (err.name === 'CastError') {
       return NextResponse.json(
@@ -64,7 +64,7 @@ export async function PUT(request, { params }) {
     return NextResponse.json({ success: true, data: updatedCourse });
     
   } catch (err) {
-    console.error("Course update error:", err);
+   
     return NextResponse.json(
       {
         success: false,
@@ -98,7 +98,7 @@ export async function DELETE(request, { params }) {
     });
     
   } catch (err) {
-    console.error("Course delete error:", err);
+    
     return NextResponse.json(
       {
         success: false,

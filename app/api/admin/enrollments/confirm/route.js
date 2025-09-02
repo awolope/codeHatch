@@ -74,7 +74,7 @@ export async function POST(req) {
         );
       }
     } catch (emailError) {
-      console.error('Failed to send email notification:', emailError);
+      
       // Don't fail the main request if email fails, just log it
     }
 
@@ -85,7 +85,7 @@ export async function POST(req) {
     }, { status: 200 });
 
   } catch (err) {
-    console.error("Admin payment confirmation error:", err);
+    
     return NextResponse.json({ success: false, error: err.message }, { status: 400 });
   }
 }

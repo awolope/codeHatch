@@ -30,7 +30,7 @@ export function middleware(request) {
     }
 
     // Tutor routes
-    const tutorRoutes = ['/tutor-dashboard'];
+    const tutorRoutes = ['/Tutor'];
     const isTutorRoute = tutorRoutes.some(route => pathname.startsWith(route));
     
     if (isTutorRoute && !['tutor', 'admin'].includes(decoded.role)) {

@@ -71,7 +71,7 @@ export async function POST(req) {
         transferDate
       );
     } catch (emailError) {
-      console.error('Failed to send payment confirmation email:', emailError);
+      
       // Don't fail the request if email fails
     }
 
@@ -84,7 +84,7 @@ export async function POST(req) {
       { status: 201 }
     );
   } catch (err) {
-    console.error("Payment processing error:", err);
+    
     return NextResponse.json(
       { success: false, error: err.message }, 
       { status: 400 }

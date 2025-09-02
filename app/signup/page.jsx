@@ -97,7 +97,7 @@ export default function SignUp() {
 
       router.push("/login?signup=success");
     } catch (error) {
-      console.error("Registration error:", error);
+      
     } finally {
       setIsLoading(false);
     }

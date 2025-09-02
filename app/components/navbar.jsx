@@ -1,8 +1,8 @@
-"use client"; 
+"use client";
 import { useState, useEffect, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { FiMenu, FiX, FiSearch, FiUser, FiBook, FiHome, FiAward, FiUsers, FiBarChart2 } from "react-icons/fi";
+import { FiMenu, FiX, FiSearch, FiUser, FiBook, FiHome, FiAward, FiUsers, FiBarChart2, FiSettings, FiUserCheck } from "react-icons/fi";
 import { FaGraduationCap } from "react-icons/fa";
 
 // Debounce function to limit API calls
@@ -32,13 +32,39 @@ export default function Navbar() {
   const primary = "#047857";
   const secondary = "#0D9488";
 
-  const navItems = [
+  // Common navigation items for all users
+  const commonNavItems = [
     { name: "Home", path: "/", icon: <FiHome className="mr-2" /> },
     { name: "Courses", path: "/courses", icon: <FiBook className="mr-2" /> },
-    { name: "Instructors", path: "/instructors", icon: <FiUsers className="mr-2" /> },
-    { name: "My Learning", path: "/my-courses", icon: <FiAward className="mr-2" /> },
-    { name: "Dashboard", path: "/dashboard", icon: <FiBarChart2 className="mr-2" />, roles: ["admin", "tutor"] },
   ];
+
+  // Navigation items specific to students
+  const studentNavItems = [
+    { name: "My Learning", path: "/my-courses", icon: <FiAward className="mr-2" /> },
+  ];
+
+  // Navigation items specific to tutors
+  const tutorNavItems = [
+    { name: "My Courses", path: "/Tutor/courses", icon: <FiBook className="mr-2" /> },
+    { name: "Students", path: "/Tutor/students", icon: <FiUsers className="mr-2" /> },
+     { name: "Content", path: "/admin/content", icon: <FiBook className="mr-2" /> },
+  ];
+
+  // Navigation items specific to admins
+  const adminNavItems = [
+    { name: "Add", path: "/Admin/addCourses", icon: <FiUserCheck className="mr-2" /> },
+   
+    { name: "Reports", path: "/admin/reports", icon: <FiBarChart2 className="mr-2" /> },
+    { name: "Settings", path: "/admin/settings", icon: <FiSettings className="mr-2" /> },
+  ];
+
+  // Dashboard link (different for each role)
+  const dashboardLinks = {
+    student: { name: "Dashboard", path: "/dashboard", icon: <FiBarChart2 className="mr-2" /> },
+    tutor: { name: "Tutor Dashboard", path: "/Tutor/dashboard", icon: <FiBarChart2 className="mr-2" /> },
+    admin: { name: "Admin Dashboard", path: "/Admin/dashboard", icon: <FiBarChart2 className="mr-2" /> },
+    default: { name: "Dashboard", path: "/dashboard", icon: <FiBarChart2 className="mr-2" /> },
+  };
 
   // Memoized auth check function
   const checkAuthStatus = useCallback(async () => {
@@ -67,7 +93,7 @@ export default function Navbar() {
         setAuthCheckAttempts(prev => prev + 1);
       }
     } catch (error) {
-      console.error("Auth check error:", error);
+      
       setIsLoggedIn(false);
       setUserName("");
       setUserRole("");
@@ -91,13 +117,27 @@ export default function Navbar() {
     return () => clearInterval(intervalId);
   }, [debouncedAuthCheck]);
 
-  // Filter nav items based on user role
-  const filteredNavItems = navItems.filter(item => {
-    if (item.roles && !item.roles.includes(userRole)) {
-      return false;
+  // Build navigation items based on user role
+  const getNavItems = () => {
+    let items = [...commonNavItems];
+    
+    if (userRole === "tutor") {
+      items = [...items, ...tutorNavItems];
+    } else if (userRole === "admin") {
+      items = [...items, ...adminNavItems];
+    } else {
+      // Default to student items
+      items = [...items, ...studentNavItems];
     }
-    return true;
-  });
+    
+    // Add dashboard based on role
+    const dashboardLink = dashboardLinks[userRole] || dashboardLinks.default;
+    items.push(dashboardLink);
+    
+    return items;
+  };
+
+  const navItems = getNavItems();
 
   const handleLogout = async () => {
     try {
@@ -114,7 +154,7 @@ export default function Navbar() {
         router.push("/login");
       }
     } catch (error) {
-      console.error("Logout error:", error);
+     
     } finally {
       setIsLoading(false);
       setMobileMenuOpen(false);
@@ -190,13 +230,13 @@ export default function Navbar() {
           </div>
 
           {/* Desktop navigation and auth */}
-          <div className="hidden md:flex items-center space-x-2">
-            <div className="flex items-center space-x-1 lg:space-x-2">
-              {filteredNavItems.map((item) => (
+          <div className="hidden md:flex items-center space-x-1">
+            <div className="flex items-center space-x-0">
+              {navItems.map((item) => (
                 <Link
                   key={item.name}
                   href={item.path}
-                  className={`flex items-center px-3 py-2 text-gray-800 hover:text-[#047857] text-sm transition-colors ${
+                  className={`flex items-center px-2 py-2 text-gray-800 hover:text-[#047857] text-sm transition-colors ${
                     pathname === item.path
                       ? "text-[#047857] font-medium border-b-2 border-[#0D9488] pb-1"
                       : ""
@@ -219,6 +259,11 @@ export default function Navbar() {
                   <span className="text-sm text-gray-900 ml-2 hidden lg:inline">
                     {userName || "Welcome back"}
                   </span>
+                  {userRole && (
+                    <span className="text-xs text-gray-500 ml-1 hidden lg:inline">
+                      ({userRole})
+                    </span>
+                  )}
                 </div>
                 <button
                   onClick={handleLogout}
@@ -276,7 +321,7 @@ export default function Navbar() {
             </div>
 
             {/* Mobile nav items */}
-            {filteredNavItems.map((item) => (
+            {navItems.map((item) => (
               <Link
                 key={item.name}
                 href={item.path}
@@ -297,7 +342,12 @@ export default function Navbar() {
                     <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center mr-2 border border-gray-300">
                       <FiUser className="text-[#047857] text-xs" />
                     </div>
-                    {userName || "My Account"}
+                    <div>
+                      {userName || "My Account"}
+                      {userRole && (
+                        <span className="text-xs text-gray-500 ml-1">({userRole})</span>
+                      )}
+                    </div>
                   </div>
                   <button
                     onClick={handleLogout}

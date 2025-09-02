@@ -29,7 +29,7 @@ export async function GET_ENROLLED(req) {
 
     return NextResponse.json({ success: true, data: enrollments }, { status: 200 });
   } catch (err) {
-    console.error("GET enrolled courses error:", err);
+  
     return NextResponse.json({ success: false, error: err.message }, { status: 400 });
   }
 }
@@ -55,7 +55,7 @@ export async function GET(req) {
 
     return NextResponse.json({ success: true, data: enrollments }, { status: 200 });
   } catch (err) {
-    console.error("GET enrollments error:", err);
+    
     return NextResponse.json({ success: false, error: err.message }, { status: 400 });
   }
 }
@@ -115,7 +115,7 @@ export async function POST(req) {
 
     return NextResponse.json({ success: true, data: populatedEnrollment }, { status: 201 });
   } catch (err) {
-    console.error("Enrollment creation error:", err);
+
     return NextResponse.json({ success: false, error: err.message }, { status: 400 });
   }
 }
