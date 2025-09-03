@@ -47,15 +47,15 @@ export default function Navbar() {
   const tutorNavItems = [
     { name: "My Courses", path: "/Tutor/courses", icon: <FiBook className="mr-2" /> },
     { name: "Students", path: "/Tutor/students", icon: <FiUsers className="mr-2" /> },
-     { name: "Content", path: "/admin/content", icon: <FiBook className="mr-2" /> },
+     { name: "Content", path: "/", icon: <FiBook className="mr-2" /> },
   ];
 
   // Navigation items specific to admins
   const adminNavItems = [
     { name: "Add", path: "/Admin/addCourses", icon: <FiUserCheck className="mr-2" /> },
    
-    { name: "Reports", path: "/admin/reports", icon: <FiBarChart2 className="mr-2" /> },
-    { name: "Settings", path: "/admin/settings", icon: <FiSettings className="mr-2" /> },
+    { name: "Reports", path: "/", icon: <FiBarChart2 className="mr-2" /> },
+    { name: "Settings", path: "/", icon: <FiSettings className="mr-2" /> },
   ];
 
   // Dashboard link (different for each role)
