@@ -41,7 +41,7 @@ const CourseStatsCard = ({ course }) => {
           <span>{course.duration || 0}h</span>
         </div>
         <Link
-          href={`/tutor/courses/${course._id}/content`}
+          href={`/tutor/courses/${course._id}/`}
           className="flex items-center text-emerald-600 hover:text-emerald-700 font-medium"
         >
           <FiEdit className="mr-1" size={12} />

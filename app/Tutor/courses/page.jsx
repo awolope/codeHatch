@@ -180,7 +180,7 @@ export default function TutorCoursesPage() {
                 {/* Action Buttons */}
                 <div className="space-y-2">
                   <Link
-                    href={`/`}
+                    href={`/tutor/courses/${enrollment.course._id}/modules/new`}
                     className="w-full flex items-center justify-center px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors text-sm"
                   >
                     <FiPlus className="mr-2" size={14} />
