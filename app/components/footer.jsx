@@ -49,23 +49,14 @@ export default function Footer() {
                   Browse Courses
                 </Link>
               </li>
+             
               <li>
-                <Link href="/instructors" className="text-gray-600 hover:text-[#047857] transition-colors">
-                  Our Instructors
+                <Link href="/guide" className="text-gray-600 hover:text-[#047857] transition-colors">
+               Guide
                 </Link>
               </li>
               <li>
-                <Link href="/pricing" className="text-gray-600 hover:text-[#047857] transition-colors">
-                  Pricing Plans
-                </Link>
-              </li>
-              <li>
-                <Link href="/blog" className="text-gray-600 hover:text-[#047857] transition-colors">
-                  Blog & News
-                </Link>
-              </li>
-              <li>
-                <Link href="/faq" className="text-gray-600 hover:text-[#047857] transition-colors">
+                <Link href="/Faq" className="text-gray-600 hover:text-[#047857] transition-colors">
                   FAQ
                 </Link>
               </li>

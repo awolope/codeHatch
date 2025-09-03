@@ -8,9 +8,11 @@ const publicRoutes = [
   '/signup',
   '/request-reset-password',
   '/reset-password',
-  '/FAQ',
+  '/Faq',
   '/guide',
-  '/contact',
+  '/privacy',
+  '/terms',
+  '/cookies',
   '/',
   '/courses',
 ]
