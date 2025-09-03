@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/lib/models/enrollment";
-import mongoose from "mongoose";
+import Course from "@/lib/models/course"; // ✅ import Course so mongoose knows it
 
 export async function GET(request) {
   try {
-    await dbConnect(); // ✅ moved inside try/catch
+    await dbConnect();
 
     const { searchParams } = new URL(request.url);
     const tutorId = searchParams.get("tutorId");
-    const debug = searchParams.get("debug") === "true";
 
     if (!tutorId) {
       return NextResponse.json(
@@ -18,7 +18,7 @@ export async function GET(request) {
       );
     }
 
-    // ✅ Validate ObjectId early (prevents CastError 500s)
+    // ✅ Validate ObjectId (avoids CastError)
     if (!mongoose.Types.ObjectId.isValid(tutorId)) {
       return NextResponse.json(
         { success: false, error: "Invalid tutorId" },
@@ -28,17 +28,14 @@ export async function GET(request) {
 
     const STATUSES = ["enrolled", "in-progress", "completed"];
 
-    // 1) Get all courses where this tutor is enrolled (your original logic)
+    // 1) Find all courses where this tutor is enrolled
     const tutorEnrollments = await Enrollment.find({
       user: tutorId,
-      // If your schema uses enrollmentStatus instead of status, this still won’t throw;
-      // it would just return [], which is fine. See query fallback below if needed.
       status: { $in: STATUSES },
     })
-      .populate("course", "_id title") // keep it light
-      .lean(); // ✅ plain objects = safer JSON serialization
+      .populate("course", "_id title") // populate course IDs & titles
+      .lean();
 
-    // ✅ Guard against null course + dedupe IDs
     const tutorCourseIds = [
       ...new Set(
         tutorEnrollments
@@ -53,29 +50,28 @@ export async function GET(request) {
           success: true,
           data: [],
           message: "Tutor is not enrolled in any courses",
-          ...(debug ? { tutorEnrollments } : {}),
         },
         { status: 200 }
       );
     }
 
-    // 2) Get all enrollments in those courses (exclude tutor’s own)
+    // 2) Find all students enrolled in those courses (excluding tutor)
     const studentEnrollments = await Enrollment.find({
       course: { $in: tutorCourseIds },
       user: { $ne: tutorId },
       status: { $in: STATUSES },
     })
       .populate("user", "name email avatar")
-      .populate("course", "title level category")
+      .populate("course", "title level category slug")
       .sort({ enrolledAt: -1 })
       .lean();
 
-    // 3) Shape response (with safe fallbacks if your schema uses different field names)
+    // 3) Shape response
     const studentsData = studentEnrollments.map((e) => ({
       _id: e._id,
       user: e.user || null,
       course: e.course || null,
-      enrollmentStatus: e.status ?? e.enrollmentStatus ?? "enrolled",
+      enrollmentStatus: e.status,
       progress: e.progress ?? 0,
       enrolledAt: e.enrolledAt ?? e.createdAt ?? null,
       lastAccessed: e.lastAccessed ?? null,
@@ -85,7 +81,6 @@ export async function GET(request) {
       {
         success: true,
         data: studentsData,
-        ...(debug ? { tutorCourseIds } : {}),
       },
       { status: 200 }
     );
@@ -95,9 +90,10 @@ export async function GET(request) {
       {
         success: false,
         error: "Failed to fetch students data",
-        // show details only in dev to help you pinpoint
         details:
-          process.env.NODE_ENV === "development" ? String(err?.message || err) : undefined,
+          process.env.NODE_ENV === "development"
+            ? String(err?.message || err)
+            : undefined,
       },
       { status: 500 }
     );
