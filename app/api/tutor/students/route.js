@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/lib/models/enrollment";
+import { Types } from "mongoose"; // Import mongoose Types
 
 export async function GET(request) {
   await dbConnect();
@@ -16,12 +17,24 @@ export async function GET(request) {
       );
     }
 
+    // Convert the string tutorId to an ObjectId
+    // Also check if it's a valid ObjectId first to avoid cast errors
+    if (!Types.ObjectId.isValid(tutorId)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid tutorId format" },
+        { status: 400 }
+      );
+    }
+    const tutorObjectId = new Types.ObjectId(tutorId);
+
     // 1. Get all courses where this tutor is enrolled
-    const tutorEnrollments = await Enrollment.find({ 
-      user: tutorId,
+    // Use the ObjectId here
+    const tutorEnrollments = await Enrollment.find({
+      user: tutorObjectId, // <-- Use the ObjectId, not the string
       status: { $in: ["enrolled", "in-progress", "completed"] }
     }).populate("course");
 
+    // ... rest of your code remains the same ...
     const tutorCourseIds = tutorEnrollments.map(enrollment => enrollment.course._id);
 
     if (tutorCourseIds.length === 0) {
@@ -32,10 +45,11 @@ export async function GET(request) {
       }, { status: 200 });
     }
 
-    // 2. Get ALL enrollments for these courses (excluding the tutor's own enrollments)
+    // 2. Get ALL enrollments for these courses
+    // Also ensure we use $ne: tutorObjectId for consistency
     const studentEnrollments = await Enrollment.find({
       course: { $in: tutorCourseIds },
-      user: { $ne: tutorId }, // Exclude the tutor's own enrollment
+      user: { $ne: tutorObjectId }, // <-- Use the ObjectId here too
       status: { $in: ["enrolled", "in-progress", "completed"] }
     })
       .populate("user", "name email avatar")
@@ -59,6 +73,7 @@ export async function GET(request) {
     }, { status: 200 });
 
   } catch (err) {
+    console.error(err); // Log the error for debugging
     return NextResponse.json(
       { success: false, error: "Failed to fetch students data" },
       { status: 500 }
