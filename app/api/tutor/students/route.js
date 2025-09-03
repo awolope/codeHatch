@@ -1,26 +1,26 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/lib/models/enrollment";
-import { Types } from "mongoose";
+import mongoose from "mongoose";
 
 export async function GET(request) {
+  await dbConnect();
+
   try {
-    await dbConnect();
-    
     const { searchParams } = new URL(request.url);
     const tutorId = searchParams.get("tutorId");
 
     if (!tutorId) {
       return NextResponse.json(
-        { success: false, error: "tutorId is required" },
+        { success: false, error: "tutorId query parameter is required" },
         { status: 400 }
       );
     }
 
-    // Convert to ObjectId - FIXES THE MAIN ISSUE
-    const tutorObjectId = new Types.ObjectId(tutorId);
+    // Convert string to ObjectId
+    const tutorObjectId = new mongoose.Types.ObjectId(tutorId);
 
-    // Get tutor's courses
+    // 1. Get all courses where this tutor is enrolled
     const tutorEnrollments = await Enrollment.find({ 
       user: tutorObjectId,
       status: { $in: ["enrolled", "in-progress", "completed"] }
@@ -32,35 +32,39 @@ export async function GET(request) {
       return NextResponse.json({
         success: true,
         data: [],
-        message: "Tutor not enrolled in any courses"
-      });
+        message: "Tutor is not enrolled in any courses"
+      }, { status: 200 });
     }
 
-    // Get other students in those courses
+    // 2. Get ALL enrollments for these courses (excluding the tutor's own enrollments)
     const studentEnrollments = await Enrollment.find({
       course: { $in: tutorCourseIds },
       user: { $ne: tutorObjectId },
       status: { $in: ["enrolled", "in-progress", "completed"] }
     })
-      .populate("user", "name email")
-      .populate("course", "title")
+      .populate("user", "name email avatar")
+      .populate("course", "title level category")
       .sort({ enrolledAt: -1 });
 
+    // Format the response
     const studentsData = studentEnrollments.map(enrollment => ({
+      _id: enrollment._id,
       user: enrollment.user,
       course: enrollment.course,
+      enrollmentStatus: enrollment.status,
       progress: enrollment.progress || 0,
-      enrolledAt: enrollment.enrolledAt
+      enrolledAt: enrollment.enrolledAt,
+      lastAccessed: enrollment.lastAccessed
     }));
 
     return NextResponse.json({
       success: true,
       data: studentsData
-    });
+    }, { status: 200 });
 
   } catch (err) {
     return NextResponse.json(
-      { success: false, error: "Server error" },
+      { success: false, error: "Failed to fetch students data" },
       { status: 500 }
     );
   }
