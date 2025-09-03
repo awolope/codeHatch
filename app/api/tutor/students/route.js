@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
 import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/lib/models/enrollment";
-import Course from "@/lib/models/course"; // ✅ import Course so mongoose knows it
 
 export async function GET(request) {
-  try {
-    await dbConnect();
+  await dbConnect();
 
+  try {
     const { searchParams } = new URL(request.url);
     const tutorId = searchParams.get("tutorId");
 
@@ -18,83 +16,51 @@ export async function GET(request) {
       );
     }
 
-    // ✅ Validate ObjectId (avoids CastError)
-    if (!mongoose.Types.ObjectId.isValid(tutorId)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid tutorId" },
-        { status: 400 }
-      );
-    }
-
-    const STATUSES = ["enrolled", "in-progress", "completed"];
-
-    // 1) Find all courses where this tutor is enrolled
-    const tutorEnrollments = await Enrollment.find({
+    // 1. Get all courses where this tutor is enrolled
+    const tutorEnrollments = await Enrollment.find({ 
       user: tutorId,
-      status: { $in: STATUSES },
-    })
-      .populate("course", "_id title") // populate course IDs & titles
-      .lean();
+      status: { $in: ["enrolled", "in-progress", "completed"] }
+    }).populate("course");
 
-    const tutorCourseIds = [
-      ...new Set(
-        tutorEnrollments
-          .map((e) => e?.course?._id?.toString())
-          .filter(Boolean)
-      ),
-    ];
+    const tutorCourseIds = tutorEnrollments.map(enrollment => enrollment.course._id);
 
     if (tutorCourseIds.length === 0) {
-      return NextResponse.json(
-        {
-          success: true,
-          data: [],
-          message: "Tutor is not enrolled in any courses",
-        },
-        { status: 200 }
-      );
+      return NextResponse.json({
+        success: true,
+        data: [],
+        message: "Tutor is not enrolled in any courses"
+      }, { status: 200 });
     }
 
-    // 2) Find all students enrolled in those courses (excluding tutor)
+    // 2. Get ALL enrollments for these courses (excluding the tutor's own enrollments)
     const studentEnrollments = await Enrollment.find({
       course: { $in: tutorCourseIds },
-      user: { $ne: tutorId },
-      status: { $in: STATUSES },
+      user: { $ne: tutorId }, // Exclude the tutor's own enrollment
+      status: { $in: ["enrolled", "in-progress", "completed"] }
     })
       .populate("user", "name email avatar")
-      .populate("course", "title level category slug")
-      .sort({ enrolledAt: -1 })
-      .lean();
+      .populate("course", "title level category")
+      .sort({ enrolledAt: -1 });
 
-    // 3) Shape response
-    const studentsData = studentEnrollments.map((e) => ({
-      _id: e._id,
-      user: e.user || null,
-      course: e.course || null,
-      enrollmentStatus: e.status,
-      progress: e.progress ?? 0,
-      enrolledAt: e.enrolledAt ?? e.createdAt ?? null,
-      lastAccessed: e.lastAccessed ?? null,
+    // Format the response
+    const studentsData = studentEnrollments.map(enrollment => ({
+      _id: enrollment._id,
+      user: enrollment.user,
+      course: enrollment.course,
+      enrollmentStatus: enrollment.status,
+      progress: enrollment.progress || 0,
+      enrolledAt: enrollment.enrolledAt,
+      lastAccessed: enrollment.lastAccessed
     }));
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: studentsData,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      success: true,
+      data: studentsData
+    }, { status: 200 });
+
   } catch (err) {
-    console.error("❌ /api/tutor/students error:", err);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch students data",
-        details:
-          process.env.NODE_ENV === "development"
-            ? String(err?.message || err)
-            : undefined,
-      },
+      { success: false, error: "Failed to fetch students data" },
       { status: 500 }
     );
   }
