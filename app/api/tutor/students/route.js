@@ -90,6 +90,7 @@ export async function GET(request) {
       { status: 200 }
     );
   } catch (err) {
+    console.error("❌ /api/tutor/students error:", err);
     return NextResponse.json(
       {
         success: false,
