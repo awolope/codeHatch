@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/lib/models/enrollment";
-import { Types } from "mongoose"; // Import mongoose Types
+import { Types } from "mongoose"; // Import necessary for ObjectId
 
 export async function GET(request) {
-  await dbConnect();
-
   try {
+    // 1. Connect to the database
+    await dbConnect();
+    console.log("Database connected.");
+
+    // 2. Get and validate the tutorId
     const { searchParams } = new URL(request.url);
     const tutorId = searchParams.get("tutorId");
 
@@ -17,24 +20,23 @@ export async function GET(request) {
       );
     }
 
-    // Convert the string tutorId to an ObjectId
-    // Also check if it's a valid ObjectId first to avoid cast errors
+    // CRITICAL: Check if the provided ID is a valid MongoDB ObjectId
     if (!Types.ObjectId.isValid(tutorId)) {
       return NextResponse.json(
         { success: false, error: "Invalid tutorId format" },
         { status: 400 }
       );
     }
+
+    // 3. Convert the string to an ObjectId for the query
     const tutorObjectId = new Types.ObjectId(tutorId);
 
-    // 1. Get all courses where this tutor is enrolled
-    // Use the ObjectId here
+    // 4. Find all courses the tutor is enrolled in
     const tutorEnrollments = await Enrollment.find({
-      user: tutorObjectId, // <-- Use the ObjectId, not the string
+      user: tutorObjectId, // Use the ObjectId here, not the string
       status: { $in: ["enrolled", "in-progress", "completed"] }
     }).populate("course");
 
-    // ... rest of your code remains the same ...
     const tutorCourseIds = tutorEnrollments.map(enrollment => enrollment.course._id);
 
     if (tutorCourseIds.length === 0) {
@@ -45,18 +47,17 @@ export async function GET(request) {
       }, { status: 200 });
     }
 
-    // 2. Get ALL enrollments for these courses
-    // Also ensure we use $ne: tutorObjectId for consistency
+    // 5. Find all student enrollments for those courses
     const studentEnrollments = await Enrollment.find({
       course: { $in: tutorCourseIds },
-      user: { $ne: tutorObjectId }, // <-- Use the ObjectId here too
+      user: { $ne: tutorObjectId }, // Use the ObjectId here as well
       status: { $in: ["enrolled", "in-progress", "completed"] }
     })
       .populate("user", "name email avatar")
       .populate("course", "title level category")
       .sort({ enrolledAt: -1 });
 
-    // Format the response
+    // 6. Format the response
     const studentsData = studentEnrollments.map(enrollment => ({
       _id: enrollment._id,
       user: enrollment.user,
@@ -73,9 +74,10 @@ export async function GET(request) {
     }, { status: 200 });
 
   } catch (err) {
-    console.error(err); // Log the error for debugging
+    // 7. Detailed error logging for production debugging
+    console.error("Error in /api/students:", err);
     return NextResponse.json(
-      { success: false, error: "Failed to fetch students data" },
+      { success: false, error: "Internal Server Error: Failed to fetch students data" },
       { status: 500 }
     );
   }
